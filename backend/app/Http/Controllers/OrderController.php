@@ -28,6 +28,23 @@ use Spatie\Browsershot\Browsershot;
 class OrderController extends Controller
 {
     /**
+     * Return all parties as JSON for the standalone root Vite prototype.
+     *
+     * This endpoint is used by the Vue frontend to populate the party selector.
+     * It returns a lightweight payload with only essential fields.
+     */
+    public function listParties(): JsonResponse
+    {
+        // Query parties with selected fields for performance
+        return response()->json(
+            Party::query()
+                ->select(['id', 'name', 'city', 'phone', 'gst_no'])
+                ->orderBy('name') // Sort alphabetically for better UX
+                ->get()
+        );
+    }
+
+    /**
      * Display the order creation form.
      *
      * Passes all parties (for the party selector) and the standard knitwear
@@ -35,14 +52,19 @@ class OrderController extends Controller
      */
     public function index(): Response
     {
-        return Inertia::render('Orders/Index', [
-            'parties' => Party::query()
-                ->select(['id', 'name', 'city', 'phone', 'gst_no'])
-                ->orderBy('name')
-                ->get(),
+        // Fetch parties for the dropdown
+        $parties = Party::query()
+            ->select(['id', 'name', 'city', 'phone', 'gst_no'])
+            ->orderBy('name')
+            ->get();
 
-            // Default sizes pre-populate the size grid; user can add more rows.
-            'sizes' => ['32', '34', '36', '38', '40', '42', '44'],
+        // Default sizes pre-populate the size grid; user can add more rows.
+        $sizes = ['32', '34', '36', '38', '40', '42', '44'];
+
+        // Render Inertia page with props
+        return Inertia::render('Orders/Index', [
+            'parties' => $parties,
+            'sizes' => $sizes,
         ]);
     }
 
@@ -54,6 +76,7 @@ class OrderController extends Controller
      */
     public function storeParty(Request $request): JsonResponse
     {
+        // Validate input data
         $validated = $request->validate([
             'name'   => ['required', 'string', 'max:255'],
             'city'   => ['nullable', 'string', 'max:255'],
@@ -61,8 +84,10 @@ class OrderController extends Controller
             'gst_no' => ['nullable', 'string', 'max:50'],
         ]);
 
+        // Create the party in the database
         $party = Party::create($validated);
 
+        // Return the created party with 201 status
         return response()->json($party, 201);
     }
 
@@ -79,10 +104,12 @@ class OrderController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Validate the entire request payload
         $validated = $request->validate([
             'party_id'          => ['required', 'exists:parties,id'],
             'item_name'         => ['required', 'string', 'max:255'],
             'is_embroidery'     => ['required', 'boolean'],
+            'embroidery_details'=> ['nullable', 'string', 'max:500'],
             'is_batch'          => ['required', 'boolean'],   // Batch printing process
             'is_printing'       => ['required', 'boolean'],
             'process_rate'      => ['nullable', 'numeric', 'min:0'],
@@ -97,11 +124,14 @@ class OrderController extends Controller
             'items.*.subtotal'  => ['required', 'numeric', 'min:0'],
         ]);
 
+        // Use a database transaction to ensure atomicity
         $order = DB::transaction(function () use ($validated) {
+            // Create the order header
             $order = Order::create([
                 'party_id'          => $validated['party_id'],
                 'item_name'         => $validated['item_name'],
                 'is_embroidery'     => $validated['is_embroidery'],
+                'embroidery_details'=> $validated['embroidery_details'] ?? null,
                 'is_batch'          => $validated['is_batch'],
                 'is_printing'       => $validated['is_printing'],
                 'process_rate'      => $validated['process_rate'] ?? 0,
@@ -114,6 +144,7 @@ class OrderController extends Controller
             collect($validated['items'])
                 ->filter(fn (array $item): bool => ($item['pieces'] ?? 0) > 0)
                 ->each(function (array $item) use ($order): void {
+                    // Create each order item
                     $order->items()->create([
                         'size'     => $item['size'],
                         'color'    => $item['color'] ?? '',
@@ -126,6 +157,7 @@ class OrderController extends Controller
             return $order;
         });
 
+        // Return success response with order ID and PDF URL
         return response()->json([
             'message'  => 'Order saved successfully.',
             'order_id' => $order->id,
@@ -147,16 +179,19 @@ class OrderController extends Controller
      */
     public function generatePdf(Order $order)
     {
-        // Eager-load relations so the Blade view doesn't trigger N+1 queries.
+        // Eager-load relations to avoid N+1 queries in the view
         $order->load(['party', 'items']);
 
+        // Render the Blade template to HTML
         $html = view('pdf.invoice', ['order' => $order])->render();
 
+        // Generate PDF using Browsershot
         $pdf = Browsershot::html($html)
             ->format('A4')
             ->showBackground()   // Preserve background colours/images from CSS
             ->pdf();
 
+        // Return PDF response with appropriate headers
         return response($pdf, 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename=invoice-'.$order->id.'.pdf');

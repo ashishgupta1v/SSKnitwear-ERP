@@ -29,6 +29,15 @@
 - PDF output should use browser print in this phase.
 - Browsershot is not a good fit for static/serverless Netlify hosting.
 
+### Decision checkpoint after Phase 1 verification
+
+If your accepted workflow requires server-generated PDF bills, move to Phase 2.
+
+Why this move is required:
+
+- Netlify static hosting cannot provide the stable Chrome/Chromium + OS-library runtime expected by Browsershot.
+- Spatie/Browsershot is designed for server environments where you control installed binaries.
+
 ---
 
 ## Phase 2: The Professional VILT Backend
@@ -45,6 +54,12 @@
 
 - Laravel Forge on a DigitalOcean droplet
 - DigitalOcean App Platform
+
+### Inertia.js role in this phase
+
+- Keep Vue components as your UI layer.
+- Use Laravel controllers/routes for heavy operations (validation, persistence orchestration, PDF generation).
+- This gives one codebase with server authority and a modern SPA-like UX.
 
 ### Required server dependencies
 

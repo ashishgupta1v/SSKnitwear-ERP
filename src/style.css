@@ -1,0 +1,38 @@
+/* Global base styles for the Phase-1 Vite + Supabase prototype */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* Print strategy for Phase 1:
+   - hide interactive controls
+   - keep a clean white invoice-like output */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-full-width {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

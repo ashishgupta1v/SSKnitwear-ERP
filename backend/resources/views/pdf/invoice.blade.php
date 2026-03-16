@@ -12,6 +12,11 @@
         $totalPieces = $order->items->sum('pieces');
         $processSurcharge = $totalPieces * (float) $order->process_rate;
         $gstAmount = ($subtotal + $processSurcharge) * ((float) $order->gst_percent / 100);
+        $processes = collect([
+            $order->is_embroidery ? 'Embroidery' : null,
+            $order->is_batch ? 'Batch' : null,
+            $order->is_printing ? 'Printing' : null,
+        ])->filter()->implode(', ');
     @endphp
 
     <div class="mx-auto max-w-[794px] border-2 border-slate-900">
@@ -29,7 +34,10 @@
             <div class="border-r border-t border-slate-900 p-3"><strong>Phone:</strong> {{ $order->party->phone ?: 'N/A' }}</div>
             <div class="border-t border-slate-900 p-3"><strong>Transport:</strong> {{ $order->transport_details ?: 'N/A' }}</div>
             <div class="border-r border-t border-slate-900 p-3"><strong>Item:</strong> {{ $order->item_name }}</div>
-            <div class="border-t border-slate-900 p-3"><strong>Process:</strong> {{ $order->is_embroidery ? 'Embroidery' : ($order->is_printing ? 'Printing' : 'Standard') }}</div>
+            <div class="border-t border-slate-900 p-3"><strong>Process:</strong> {{ $processes ?: 'Standard' }}</div>
+            @if ($order->embroidery_details)
+                <div class="col-span-2 border-t border-slate-900 p-3"><strong>Embroidery Details:</strong> {{ $order->embroidery_details }}</div>
+            @endif
         </div>
 
         <table class="w-full border-collapse text-sm">

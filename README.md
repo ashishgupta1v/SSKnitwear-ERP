@@ -20,13 +20,23 @@ Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 ### Local setup (root Vite app)
 
 1. Copy `.env.example` to `.env`.
-2. Add Supabase credentials:
+2. Choose provider mode:
+	- `VITE_DATA_PROVIDER=supabase` for Phase 1
+	- `VITE_DATA_PROVIDER=laravel` for Phase 2 bridge mode
+3. Add provider credentials/config:
 	- `VITE_SUPABASE_URL`
 	- `VITE_SUPABASE_ANON_KEY`
-3. Install dependencies:
+	- `VITE_BACKEND_BASE_URL` when using Laravel mode
+4. Install dependencies:
 	- `npm install`
-4. Start development server:
+5. Start development server:
 	- `npm run dev`
+
+### Provider switch behavior
+
+- `supabase`: root app reads/writes directly to Supabase and uses browser `window.print()`.
+- `laravel`: root app calls Laravel JSON endpoints for parties/order save and opens Laravel-generated PDF output.
+- The UI stays the same in both modes.
 
 ### Netlify deployment
 
@@ -45,6 +55,27 @@ Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 - PDF generation is browser-native only (`window.print()` → Save as PDF).
 - Server-side PDF generation (Spatie/Browsershot) is available in Phase 2 backend.
 
+### Platform check: Can Netlify run Spatie/Browsershot?
+
+- Short answer: **No, not reliably for this project model**.
+- Reason: Browsershot requires a server runtime with Chrome/Chromium + system libs, while this root app on Netlify is a static Vite deployment.
+- Result: Keep Phase 1 on Netlify for fast UI iteration and browser print only.
+
+### When to move to Laravel + VPS (Forge / DigitalOcean)
+
+Move to Phase 2 backend hosting when you need any of the following:
+
+- server-side PDF generation with Spatie/Browsershot
+- secure server-side business rules and validation
+- centralized order lifecycle logic in Laravel
+- Inertia.js rendering where Laravel handles heavy lifting and Vue remains the UI layer
+
+Recommended stack for that transition:
+
+- Deploy [backend/](backend) to a Forge-managed DigitalOcean VPS
+- Keep Vue components through Inertia.js in Laravel
+- Let Laravel endpoints generate invoices and run Browsershot with Chrome on the server
+
 ## Implemented features in backend
 
 - Supabase/PostgreSQL-ready Laravel migrations for `parties`, `orders`, `order_items`
@@ -61,7 +92,7 @@ Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 ## Backend quick start
 
 1. Open [backend/.env.example](backend/.env.example) and copy to `.env`.
-2. Fill in Supabase PostgreSQL credentials.
+2. Fill in Supabase PostgreSQL credentials and `FRONTEND_URLS`.
 3. Install backend JS packages:
 	- `npm --prefix backend install`
 4. Run migrations:

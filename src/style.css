@@ -20,10 +20,17 @@ body {
 /* Print strategy for Phase 1:
    - hide interactive controls
    - keep a clean white invoice-like output */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
 @media print {
   body {
     background: #fff;
     color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .no-print {
@@ -34,5 +41,16 @@ body {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  input,
+  select,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    appearance: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }

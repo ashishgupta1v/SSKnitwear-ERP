@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int         $party_id
  * @property string      $item_name        e.g. “Lower / Track Pant”
  * @property bool        $is_embroidery
+ * @property string|null $embroidery_details
  * @property bool        $is_batch
  * @property bool        $is_printing
  * @property float       $process_rate     Rate per piece for any active process
@@ -40,6 +41,7 @@ class Order extends Model
         'party_id',
         'item_name',
         'is_embroidery',
+        'embroidery_details',
         'is_batch',
         'is_printing',
         'process_rate',

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import type { DraftForm, Party } from '../../types/order'
 
 // Define props for workbench data
@@ -13,16 +14,28 @@ const props = defineProps<{
   selectedParty: Party | null
   lastSavedOrderId: number | null
   embroiderySummary: string
+  form: DraftForm
 }>()
 
-// Define model binding for form
-const form = defineModel<DraftForm>('form', { required: true })
-
-// Define emits for row management
+// Define emits for row management and form updates
 const emit = defineEmits<{
   (e: 'add-row'): void
   (e: 'remove-row', index: number): void
+  (e: 'update:form', form: DraftForm): void
 }>()
+
+// Local reactive copy of form for v-model compatibility
+const localForm = ref<DraftForm>({ ...props.form })
+
+// Watch for changes in localForm and emit updates
+watch(localForm, (newForm) => {
+  emit('update:form', newForm)
+}, { deep: true })
+
+// Watch for changes in props.form and update localForm
+watch(() => props.form, (newForm) => {
+  localForm.value = { ...newForm }
+}, { deep: true })
 
 // Utility function to format money
 const formatMoney = (value: number) => Number(value || 0).toFixed(2)
@@ -36,7 +49,7 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
       <h2 class="text-xl font-bold">Singhal Sons Knitwear</h2>
       <p class="text-sm">Invoice Date: {{ props.invoiceDate }}</p>
       <p class="text-sm">Party: {{ props.selectedParty?.name || 'N/A' }}</p>
-      <p class="text-sm">Item: {{ form.item_name }}</p>
+      <p class="text-sm">Item: {{ localForm.item_name }}</p>
       <p class="text-sm">Embroidery: {{ props.embroiderySummary }}</p>
       <p class="text-sm" v-if="props.lastSavedOrderId">Order #: {{ props.lastSavedOrderId }}</p>
     </div>
@@ -68,7 +81,7 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
         </thead>
         <tbody>
           <!-- Table rows for each item -->
-          <tr v-for="(item, index) in form.items" :key="`${item.size}-${index}`">
+          <tr v-for="(item, index) in localForm.items" :key="`${item.size}-${index}`">
             <td class="border border-slate-200 px-3 py-2">
               <input v-model="item.size" type="text" class="w-24 rounded-lg border border-slate-300 px-2 py-1" />
             </td>
@@ -100,7 +113,7 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
           <div class="flex justify-between"><span>Total Pieces</span><strong>{{ props.totalPieces }}</strong></div>
           <div class="flex justify-between"><span>Subtotal</span><strong>₹ {{ formatMoney(props.subtotal) }}</strong></div>
           <div class="flex justify-between"><span>Process Surcharge</span><strong>₹ {{ formatMoney(props.processSurcharge) }}</strong></div>
-          <div class="flex justify-between"><span>GST {{ form.gst_percent }}%</span><strong>₹ {{ formatMoney(props.gstAmount) }}</strong></div>
+          <div class="flex justify-between"><span>GST {{ localForm.gst_percent }}%</span><strong>₹ {{ formatMoney(props.gstAmount) }}</strong></div>
         </div>
       </div>
       <!-- Grand total section -->
@@ -114,7 +127,7 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
     <!-- Print-only footer with transport and signature -->
     <div class="print-only mt-6 border-t border-slate-300 pt-3 text-sm">
       <div class="flex items-center justify-between">
-        <span>Transport: {{ form.transport_details || 'N/A' }}</span>
+        <span>Transport: {{ localForm.transport_details || 'N/A' }}</span>
         <span>Authorized Signature</span>
       </div>
     </div>

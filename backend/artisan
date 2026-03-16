@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+/*
+|--------------------------------------------------------------------------
+| Register the Composer Autoloader
+|--------------------------------------------------------------------------
+| Composer provides a PSR-4 autoloader that maps class namespaces to
+| file paths automatically. This is the single entry point for loading
+| all application and vendor classes.
+*/
+require __DIR__.'/vendor/autoload.php';
+
+/*
+|--------------------------------------------------------------------------
+| Run the Artisan Console Application
+|--------------------------------------------------------------------------
+| Bootstrap the Laravel application, then hand off the command from the
+| CLI to the Artisan console. Artisan handles all framework commands.
+*/
+$status = (require_once __DIR__.'/bootstrap/app.php')
+    ->handleCommand(new ArgvInput);
+
+exit($status);

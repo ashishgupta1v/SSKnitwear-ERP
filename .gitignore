@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Node / Vite  (root Vite prototype — Phase 1)
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Dependency / build logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Environment & secrets  (NEVER commit real credentials)
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Editor & OS artefacts
+# ─────────────────────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Temporary workaround directories
+# Re-add this exclusion as a reminder in case the directory reappears.
+# ─────────────────────────────────────────────────────────────────────────────
+backend_autoload_fix/

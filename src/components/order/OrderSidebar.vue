@@ -53,11 +53,12 @@ watch(() => props.showItemCreate, (newValue) => { syncingFromProps = true; local
 watch(() => props.customItemName, (newValue) => { syncingFromProps = true; localCustomItemName.value = newValue; syncingFromProps = false })
 
 // Watch locals to emit updates (skip if syncing from props)
-watch(localForm, (newForm) => { if (!syncingFromProps) emit('update:form', newForm) }, { deep: true })
-watch(localQuickParty, (newQuickParty) => { if (!syncingFromProps) emit('update:quick-party', newQuickParty) }, { deep: true })
-watch(localShowPartyCreate, (newValue) => { if (!syncingFromProps) emit('update:show-party-create', newValue) })
-watch(localShowItemCreate, (newValue) => { if (!syncingFromProps) emit('update:show-item-create', newValue) })
-watch(localCustomItemName, (newValue) => { if (!syncingFromProps) emit('update:custom-item-name', newValue) })
+// flush:'sync' ensures these fire immediately during assignment while guard is still true
+watch(localForm, (newForm) => { if (!syncingFromProps) emit('update:form', newForm) }, { deep: true, flush: 'sync' })
+watch(localQuickParty, (newQuickParty) => { if (!syncingFromProps) emit('update:quick-party', newQuickParty) }, { deep: true, flush: 'sync' })
+watch(localShowPartyCreate, (newValue) => { if (!syncingFromProps) emit('update:show-party-create', newValue) }, { flush: 'sync' })
+watch(localShowItemCreate, (newValue) => { if (!syncingFromProps) emit('update:show-item-create', newValue) }, { flush: 'sync' })
+watch(localCustomItemName, (newValue) => { if (!syncingFromProps) emit('update:custom-item-name', newValue) }, { flush: 'sync' })
 </script>
 
 <template>

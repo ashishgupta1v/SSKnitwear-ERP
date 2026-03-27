@@ -31,9 +31,10 @@ const localForm = ref<DraftForm>({ ...props.form })
 let syncingFromProps = false
 
 // Watch for changes in localForm and emit updates (skip if syncing from props)
+// flush:'sync' ensures this fires immediately during assignment while guard is still true
 watch(localForm, (newForm) => {
   if (!syncingFromProps) emit('update:form', newForm)
-}, { deep: true })
+}, { deep: true, flush: 'sync' })
 
 // Watch for changes in props.form and update localForm (guarded)
 watch(() => props.form, (newForm) => {

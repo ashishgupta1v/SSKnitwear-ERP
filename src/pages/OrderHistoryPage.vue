@@ -2,9 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { listOrders, fetchOrder, providerConfigured } from '../services/orderDataProvider'
+import { useTheme } from '../composables/useTheme'
+import { formatDateIST, formatDateTimeIST } from '../lib/dateFormatter'
 import type { OrderSummary, OrderDetail } from '../types/order'
 
 const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 const orders = ref<OrderSummary[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -33,18 +36,9 @@ const filteredOrders = computed(() => {
 
 const formatMoney = (value: number) => Number(value || 0).toFixed(2)
 
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+const formatDate = (dateStr: string) => formatDateIST(dateStr)
 
-const formatDateTime = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
+const formatDateTime = (dateStr: string) => formatDateTimeIST(dateStr)
 
 const loadOrders = async () => {
   if (!providerConfigured) {
@@ -101,10 +95,16 @@ onMounted(loadOrders)
         </div>
         <div class="flex items-center gap-2">
           <button
-            class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
+            @click="toggleTheme"
+          >
+            {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+          </button>
+          <button
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
             @click="goToEntry"
           >
-            + New Order
+            ← Back
           </button>
           <button
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"

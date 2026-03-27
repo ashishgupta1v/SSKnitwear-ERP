@@ -7,6 +7,7 @@ import {
   makeItem,
 } from '../constants/order'
 import { createParty, listParties, persistOrder, providerConfigured, providerMode } from '../services/orderDataProvider'
+import { formatDateIST, formatDateTimeIST } from '../lib/dateFormatter'
 import type {
   DraftForm,
   EmbroideryPlacement,
@@ -72,6 +73,8 @@ export const useOrderEntry = () => {
   const lastSavedOrderId = ref<number | null>(null)
   // URL for the last generated PDF
   const lastSavedPdfUrl = ref<string | null>(null)
+  // Timestamp of the last saved order creation
+  const orderCreatedAt = ref<string | null>(null)
   // Flag to prevent premature draft saves during hydration
   const hasHydratedDraft = ref(false)
   // Timer used to debounce local draft persistence.
@@ -110,9 +113,20 @@ export const useOrderEntry = () => {
     return parties.value.find((party) => String(party.id) === form.value.party_id) ?? null
   })
 
-  // Computed current date for invoice
+  // Computed current date for invoice (uses saved order creation date if available)
   const invoiceDate = computed(() => {
-    return new Date().toLocaleDateString('en-GB')
+    if (orderCreatedAt.value) {
+      return formatDateIST(orderCreatedAt.value)
+    }
+    return formatDateIST(new Date().toISOString())
+  })
+
+  // Computed date and time for display
+  const invoiceDateTime = computed(() => {
+    if (orderCreatedAt.value) {
+      return formatDateTimeIST(orderCreatedAt.value)
+    }
+    return formatDateTimeIST(new Date().toISOString())
   })
 
   // Computed summary of embroidery details
@@ -338,6 +352,11 @@ export const useOrderEntry = () => {
       return
     }
 
+    if (orderItems.some((item) => Number(item.rate || 0) === 0)) {
+      feedback.value = 'Rate of Product should be greater than 0.'
+      return
+    }
+
     savingOrder.value = true
 
     const payload: SaveOrderInput = {
@@ -358,6 +377,7 @@ export const useOrderEntry = () => {
       const result = await persistOrder(payload)
       lastSavedOrderId.value = result.orderId
       lastSavedPdfUrl.value = result.pdfUrl
+      orderCreatedAt.value = new Date().toISOString()
       feedback.value = result.message
     } catch (error) {
       feedback.value = error instanceof Error ? error.message : 'Unable to save order.'
@@ -428,6 +448,25 @@ export const useOrderEntry = () => {
     draftSaveTimer = null
   })
 
+  // Reset form to a blank slate for a new order entry
+  const resetForm = () => {
+    form.value = getDefaultForm()
+    lastSavedOrderId.value = null
+    lastSavedPdfUrl.value = null
+    orderCreatedAt.value = null
+    feedback.value = ''
+    // Clear UI state
+    showPartyCreate.value = false
+    showItemCreate.value = false
+    customItemName.value = ''
+    quickParty.value = {
+      name: '',
+      city: '',
+      phone: '',
+      gst_no: '',
+    }
+  }
+
   // On mount, hydrate draft and load parties
   onMounted(async () => {
     hydrateDraft()
@@ -461,11 +500,14 @@ export const useOrderEntry = () => {
     gstAmount,
     grandTotal,
     isProcessActive,
+    orderCreatedAt,
+    invoiceDateTime,
     addSizeRow,
     removeSizeRow,
     addCustomItemOption,
     addParty,
     saveOrder,
+    resetForm,
     printBill,
   }
 }

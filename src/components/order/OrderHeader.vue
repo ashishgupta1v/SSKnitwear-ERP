@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useTheme } from '../../composables/useTheme'
 
 const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 
 defineProps<{
   savingOrder: boolean
@@ -12,6 +14,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'save'): void
   (e: 'print'): void
+  (e: 'new-order'): void
 }>()
 
 const goToHistory = () => {
@@ -32,9 +35,21 @@ const goToHistory = () => {
       <div class="flex items-center gap-2">
         <button
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
+          @click="toggleTheme"
+        >
+          {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+        </button>
+        <button
+          class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
           @click="goToHistory"
         >
           Order History
+        </button>
+        <button
+          class="rounded-lg border border-teal-500 px-4 py-2 text-sm font-medium text-teal-700 shadow-sm transition hover:bg-teal-50"
+          @click="emit('new-order')"
+        >
+          + New Order
         </button>
         <button
           class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"

@@ -2,6 +2,7 @@
 import OrderHeader from '../components/order/OrderHeader.vue'
 import OrderSidebar from '../components/order/OrderSidebar.vue'
 import OrderWorkbench from '../components/order/OrderWorkbench.vue'
+import OrderPrintTemplate from '../components/order/OrderPrintTemplate.vue'
 import { useOrderEntry } from '../composables/useOrderEntry'
 import { computed } from 'vue'
 
@@ -28,6 +29,7 @@ const processSurcharge = computed(() => order.processSurcharge.value)
 const gstAmount = computed(() => order.gstAmount.value)
 const grandTotal = computed(() => order.grandTotal.value)
 const invoiceDate = computed(() => order.invoiceDate.value)
+const invoiceDateTime = computed(() => order.invoiceDateTime.value)
 const selectedParty = computed(() => order.selectedParty.value)
 const embroiderySummary = computed(() => order.embroiderySummary.value)
 </script>
@@ -40,9 +42,10 @@ const embroiderySummary = computed(() => order.embroiderySummary.value)
       :mode-label="modeLabel"
       @save="order.saveOrder"
       @print="order.printBill"
+      @new-order="order.resetForm"
     />
 
-    <main class="print-full-width mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-12">
+    <main class="no-print print-full-width mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-12">
       <OrderSidebar
         :form="form"
         :quick-party="quickParty"
@@ -82,5 +85,20 @@ const embroiderySummary = computed(() => order.embroiderySummary.value)
         @remove-row="order.removeSizeRow"
       />
     </main>
+
+    <!-- Print Template (hidden on screen, shown on print) -->
+    <OrderPrintTemplate
+      :form="form"
+      :rows="rows"
+      :selected-party="selectedParty"
+      :invoice-date="invoiceDate"
+      :invoice-date-time="invoiceDateTime"
+      :last-saved-order-id="lastSavedOrderId"
+      :subtotal="subtotal"
+      :process-surcharge="processSurcharge"
+      :gst-amount="gstAmount"
+      :grand-total="grandTotal"
+      :embroidery-summary="embroiderySummary"
+    />
   </div>
 </template>

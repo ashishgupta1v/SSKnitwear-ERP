@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   DEFAULT_ITEM_OPTIONS,
   DRAFT_KEY,
@@ -74,6 +74,8 @@ export const useOrderEntry = () => {
   const lastSavedPdfUrl = ref<string | null>(null)
   // Flag to prevent premature draft saves during hydration
   const hasHydratedDraft = ref(false)
+  // Timer used to debounce local draft persistence.
+  let draftSaveTimer: ReturnType<typeof setTimeout> | null = null
   // Input for custom item name
   const customItemName = ref('')
   // Form data for quick party creation
@@ -295,6 +297,10 @@ export const useOrderEntry = () => {
 
   // Save the order via the data provider
   const saveOrder = async () => {
+    if (savingOrder.value) {
+      return
+    }
+
     feedback.value = ''
 
     if (!providerConfigured) {
@@ -304,6 +310,11 @@ export const useOrderEntry = () => {
 
     if (!form.value.party_id) {
       feedback.value = 'Please select a party.'
+      return
+    }
+
+    if (!parties.value.some((party) => String(party.id) === form.value.party_id)) {
+      feedback.value = 'Selected party is no longer available. Please select again.'
       return
     }
 
@@ -396,10 +407,26 @@ export const useOrderEntry = () => {
     [form, itemOptions],
     () => {
       if (!hasHydratedDraft.value) return
-      saveDraftLocally()
+
+      if (draftSaveTimer) {
+        clearTimeout(draftSaveTimer)
+      }
+
+      draftSaveTimer = setTimeout(() => {
+        saveDraftLocally()
+      }, 400)
     },
     { deep: true },
   )
+
+  onUnmounted(() => {
+    if (!draftSaveTimer) {
+      return
+    }
+
+    clearTimeout(draftSaveTimer)
+    draftSaveTimer = null
+  })
 
   // On mount, hydrate draft and load parties
   onMounted(async () => {

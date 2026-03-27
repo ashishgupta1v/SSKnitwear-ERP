@@ -3,17 +3,18 @@ import type { Party, QuickParty, ProviderMode, SaveOrderInput, SaveOrderResult }
 
 // Determine the provider mode from environment variable, default to 'supabase'
 const rawMode = String(import.meta.env.VITE_DATA_PROVIDER ?? 'supabase').trim().toLowerCase()
+const rawBackendBaseUrl = String(import.meta.env.VITE_BACKEND_BASE_URL ?? '').trim()
 
 // Export the normalized provider mode
 export const providerMode: ProviderMode = rawMode === 'laravel' ? 'laravel' : 'supabase'
 
 // Get and normalize the backend base URL for Laravel API calls
-export const backendBaseUrl = String(import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://127.0.0.1:8000')
+export const backendBaseUrl = String(rawBackendBaseUrl || 'http://127.0.0.1:8000')
   .trim()
   .replace(/\/$/, '') // Remove trailing slash
 
 // Check if the provider is configured (Supabase client exists or backend URL is set)
-export const providerConfigured = providerMode === 'laravel' ? Boolean(backendBaseUrl) : Boolean(supabase)
+export const providerConfigured = providerMode === 'laravel' ? Boolean(rawBackendBaseUrl) : Boolean(supabase)
 
 // Build full URL for backend API endpoints
 const buildBackendUrl = (path: string) => {
@@ -132,13 +133,13 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
         party_id: payload.partyId,
         item_name: payload.itemName,
         is_embroidery: payload.isEmbroidery,
+        embroidery_details: payload.embroideryDetails ?? null,
         is_batch: payload.isBatch,
         is_printing: payload.isPrinting,
         process_rate: payload.processRate,
         transport_details: payload.transportDetails,
         gst_percent: payload.gstPercent,
         grand_total: payload.grandTotal,
-        embroidery_details: payload.embroideryDetails ?? null,
         items: payload.items,
       }),
     })
@@ -163,6 +164,7 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
         party_id: payload.partyId,
         item_name: payload.itemName,
         is_embroidery: payload.isEmbroidery,
+        embroidery_details: payload.embroideryDetails ?? null,
         is_batch: payload.isBatch,
         is_printing: payload.isPrinting,
         process_rate: payload.processRate,
@@ -192,8 +194,26 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
   const { error: itemError } = await supabase.from('order_items').insert(orderItemsPayload)
 
   if (itemError) {
-    // Rollback: delete the order if items failed
-    await supabase.from('orders').delete().eq('id', createdOrder.id)
+    // Rollback: delete the orphaned order header if items failed
+    try {
+      const { error: rollbackError } = await supabase.from('orders').delete().eq('id', createdOrder.id)
+      if (rollbackError) {
+        throw new Error(
+          `Failed to save order items: ${itemError.message}. ` +
+          `Additionally, rollback of order #${createdOrder.id} failed: ${rollbackError.message}. ` +
+          `Please delete order #${createdOrder.id} manually in Supabase.`
+        )
+      }
+    } catch (rollbackException) {
+      if (rollbackException instanceof Error && rollbackException.message.includes('rollback')) {
+        throw rollbackException // Re-throw our formatted error above
+      }
+      throw new Error(
+        `Failed to save order items: ${itemError.message}. ` +
+        `Additionally, rollback of order #${createdOrder.id} failed unexpectedly. ` +
+        `Please delete order #${createdOrder.id} manually in Supabase.`
+      )
+    }
     throw new Error(itemError.message)
   }
 

@@ -27,14 +27,19 @@ const emit = defineEmits<{
 // Local reactive copy of form for v-model compatibility
 const localForm = ref<DraftForm>({ ...props.form })
 
-// Watch for changes in localForm and emit updates
+// Guard flag to prevent watch loops (prop→local→emit→prop)
+let syncingFromProps = false
+
+// Watch for changes in localForm and emit updates (skip if syncing from props)
 watch(localForm, (newForm) => {
-  emit('update:form', newForm)
+  if (!syncingFromProps) emit('update:form', newForm)
 }, { deep: true })
 
-// Watch for changes in props.form and update localForm
+// Watch for changes in props.form and update localForm (guarded)
 watch(() => props.form, (newForm) => {
+  syncingFromProps = true
   localForm.value = { ...newForm }
+  syncingFromProps = false
 }, { deep: true })
 
 // Utility function to format money

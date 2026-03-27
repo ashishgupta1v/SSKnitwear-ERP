@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { DraftForm, Party, QuickParty } from '../../types/order'
 
 // Define props for sidebar data and state
@@ -36,19 +36,28 @@ const localShowPartyCreate = ref(props.showPartyCreate)
 const localShowItemCreate = ref(props.showItemCreate)
 const localCustomItemName = ref(props.customItemName)
 
-// Watch props to update locals
-watch(() => props.form, (newForm) => { localForm.value = { ...newForm } }, { deep: true })
-watch(() => props.quickParty, (newQuickParty) => { localQuickParty.value = { ...newQuickParty } }, { deep: true })
-watch(() => props.showPartyCreate, (newValue) => { localShowPartyCreate.value = newValue })
-watch(() => props.showItemCreate, (newValue) => { localShowItemCreate.value = newValue })
-watch(() => props.customItemName, (newValue) => { localCustomItemName.value = newValue })
+// Detect error vs success feedback for conditional styling
+const isErrorFeedback = computed(() => {
+  const msg = props.feedback.toLowerCase()
+  return msg.includes('unable') || msg.includes('fail') || msg.includes('error') || msg.includes('required') || msg.includes('missing') || msg.includes('please')
+})
 
-// Watch locals to emit updates
-watch(localForm, (newForm) => { emit('update:form', newForm) }, { deep: true })
-watch(localQuickParty, (newQuickParty) => { emit('update:quick-party', newQuickParty) }, { deep: true })
-watch(localShowPartyCreate, (newValue) => { emit('update:show-party-create', newValue) })
-watch(localShowItemCreate, (newValue) => { emit('update:show-item-create', newValue) })
-watch(localCustomItemName, (newValue) => { emit('update:custom-item-name', newValue) })
+// Guard flag to prevent watch loops (prop→local→emit→prop)
+let syncingFromProps = false
+
+// Watch props to update locals (guarded)
+watch(() => props.form, (newForm) => { syncingFromProps = true; localForm.value = { ...newForm }; syncingFromProps = false }, { deep: true })
+watch(() => props.quickParty, (newQuickParty) => { syncingFromProps = true; localQuickParty.value = { ...newQuickParty }; syncingFromProps = false }, { deep: true })
+watch(() => props.showPartyCreate, (newValue) => { syncingFromProps = true; localShowPartyCreate.value = newValue; syncingFromProps = false })
+watch(() => props.showItemCreate, (newValue) => { syncingFromProps = true; localShowItemCreate.value = newValue; syncingFromProps = false })
+watch(() => props.customItemName, (newValue) => { syncingFromProps = true; localCustomItemName.value = newValue; syncingFromProps = false })
+
+// Watch locals to emit updates (skip if syncing from props)
+watch(localForm, (newForm) => { if (!syncingFromProps) emit('update:form', newForm) }, { deep: true })
+watch(localQuickParty, (newQuickParty) => { if (!syncingFromProps) emit('update:quick-party', newQuickParty) }, { deep: true })
+watch(localShowPartyCreate, (newValue) => { if (!syncingFromProps) emit('update:show-party-create', newValue) })
+watch(localShowItemCreate, (newValue) => { if (!syncingFromProps) emit('update:show-item-create', newValue) })
+watch(localCustomItemName, (newValue) => { if (!syncingFromProps) emit('update:custom-item-name', newValue) })
 </script>
 
 <template>
@@ -205,8 +214,14 @@ watch(localCustomItemName, (newValue) => { emit('update:custom-item-name', newVa
       <input v-model="localForm.transport_details" type="text" placeholder="Lorry / courier / self pickup" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
     </div>
 
-    <!-- Feedback message display -->
-    <div v-if="props.feedback" class="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-800">
+    <!-- Feedback message display (error = red, success = teal) -->
+    <div
+      v-if="props.feedback"
+      class="rounded-xl border px-3 py-2 text-sm"
+      :class="isErrorFeedback
+        ? 'border-rose-200 bg-rose-50 text-rose-800'
+        : 'border-teal-100 bg-teal-50 text-teal-800'"
+    >
       {{ props.feedback }}
     </div>
 

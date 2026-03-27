@@ -161,7 +161,7 @@ class OrderController extends Controller
         return response()->json([
             'message'  => 'Order saved successfully.',
             'order_id' => $order->id,
-            'pdf_url'  => route('orders.pdf', $order),
+            'pdf_url'  => route('api.orders.pdf', $order),
         ], 201);
     }
 

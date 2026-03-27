@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { Party, QuickParty, ProviderMode, SaveOrderInput, SaveOrderResult } from '../types/order'
+import type { Party, QuickParty, ProviderMode, SaveOrderInput, SaveOrderResult, OrderSummary, OrderDetail } from '../types/order'
 
 // Determine the provider mode from environment variable, default to 'supabase'
 const rawMode = String(import.meta.env.VITE_DATA_PROVIDER ?? 'supabase').trim().toLowerCase()
@@ -223,4 +223,49 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
     message: `Order #${createdOrder.id} saved successfully.`,
     pdfUrl: null,
   }
+}
+
+// Fetch list of all orders with party name, sorted newest first
+export const listOrders = async (): Promise<OrderSummary[]> => {
+  if (providerMode === 'laravel') {
+    return requestJson<OrderSummary[]>('/api/orders', { method: 'GET' })
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, party_id, item_name, grand_total, created_at, party:parties(name, city)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as unknown as OrderSummary[]
+}
+
+// Fetch a single order with party info and line items
+export const fetchOrder = async (orderId: number): Promise<OrderDetail> => {
+  if (providerMode === 'laravel') {
+    return requestJson<OrderDetail>(`/api/orders/${orderId}`, { method: 'GET' })
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, party_id, item_name, is_embroidery, embroidery_details, is_batch, is_printing, process_rate, transport_details, gst_percent, grand_total, created_at, party:parties(name, city, phone, gst_no), items:order_items(id, size, color, pieces, rate, subtotal)')
+    .eq('id', orderId)
+    .single()
+
+  if (error || !data) {
+    throw new Error(error?.message ?? 'Order not found.')
+  }
+
+  return data as unknown as OrderDetail
 }

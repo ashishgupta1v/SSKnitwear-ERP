@@ -18,6 +18,7 @@ export type QuickParty = {
 export type EmbroideryPlacement = 'Front' | 'Back' | 'Others'
 
 export type ItemRow = {
+
   size: number | string
   color: string
   pieces: number
@@ -64,4 +65,39 @@ export type SaveOrderResult = {
   orderId: number
   message: string
   pdfUrl: string | null
+}
+
+export type OrderSummary = {
+  id: number
+  party_id: number
+  item_name: string
+  grand_total: number
+  created_at: string
+  party?: { name: string; city: string | null } | null
+}
+
+export type OrderDetail = {
+  id: number
+  party_id: number
+  item_name: string
+  is_embroidery: boolean
+  embroidery_details: string | null
+  is_batch: boolean
+  is_printing: boolean
+  process_rate: number
+  transport_details: string | null
+  gst_percent: number
+  grand_total: number
+  created_at: string
+  party?: { name: string; city: string | null; phone: string | null; gst_no: string | null } | null
+  items?: OrderDetailItem[]
+}
+
+export type OrderDetailItem = {
+  id: number
+  size: number | string
+  color: string | null
+  pieces: number
+  rate: number
+  subtotal: number
 }

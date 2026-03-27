@@ -73,8 +73,16 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
     </div>
 
     <!-- Size grid table -->
-    <div class="overflow-x-auto">
-      <table class="min-w-full border-collapse text-sm">
+    <div class="overflow-x-auto rounded-xl border border-slate-200">
+      <table class="size-grid-table min-w-full border-collapse text-sm">
+        <colgroup>
+          <col style="width: 110px" />
+          <col style="width: 180px" />
+          <col style="width: 110px" />
+          <col style="width: 120px" />
+          <col style="width: 130px" />
+          <col class="no-print" style="width: 90px" />
+        </colgroup>
         <thead>
           <tr class="bg-slate-100 text-left text-slate-700">
             <th class="border border-slate-200 px-3 py-2">Size</th>
@@ -89,16 +97,16 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
           <!-- Table rows for each item -->
           <tr v-for="(item, index) in localForm.items" :key="index">
             <td class="border border-slate-200 px-3 py-2">
-              <input v-model.number="item.size" type="number" min="0" class="w-24 rounded-lg border border-slate-300 px-2 py-1" />
+              <input v-model.number="item.size" type="number" inputmode="numeric" min="0" class="size-grid-input w-full rounded-lg border border-slate-300 px-2 py-1" />
             </td>
             <td class="border border-slate-200 px-3 py-2">
-              <input v-model="item.color" type="text" class="w-full rounded-lg border border-slate-300 px-2 py-1" />
+              <input v-model="item.color" type="text" class="size-grid-input w-full rounded-lg border border-slate-300 px-2 py-1" />
             </td>
             <td class="border border-slate-200 px-3 py-2">
-              <input v-model.number="item.pieces" type="number" min="0" class="w-full rounded-lg border border-slate-300 px-2 py-1" />
+              <input v-model.number="item.pieces" type="number" inputmode="numeric" min="0" class="size-grid-input w-full rounded-lg border border-slate-300 px-2 py-1" />
             </td>
             <td class="border border-slate-200 px-3 py-2">
-              <input v-model.number="item.rate" type="number" min="0" step="0.01" class="w-full rounded-lg border border-slate-300 px-2 py-1" />
+              <input v-model.number="item.rate" type="number" inputmode="decimal" min="0" step="0.01" class="size-grid-input w-full rounded-lg border border-slate-300 px-2 py-1" />
             </td>
             <td class="border border-slate-200 px-3 py-2 text-right font-medium">₹ {{ formatMoney(props.rows[index].subtotal) }}</td>
             <td class="no-print border border-slate-200 px-3 py-2 text-center">
@@ -146,10 +154,44 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
   display: none;
 }
 
+.size-grid-table {
+  table-layout: fixed;
+  min-width: 740px;
+}
+
+.size-grid-input {
+  min-height: 2.2rem;
+  font-size: 16px;
+  line-height: 1.25;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.size-grid-input::-webkit-outer-spin-button,
+.size-grid-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .size-grid-table {
+    min-width: 700px;
+  }
+}
+
 /* Show print-only elements when printing */
 @media print {
   .print-only {
     display: block !important;
+  }
+
+  .size-grid-table {
+    min-width: 100%;
+  }
+
+  .size-grid-input {
+    font-size: 11pt;
+    min-height: 0;
   }
 }
 </style>

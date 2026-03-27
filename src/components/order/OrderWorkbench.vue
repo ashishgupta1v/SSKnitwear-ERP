@@ -4,7 +4,7 @@ import type { DraftForm, Party } from '../../types/order'
 
 // Define props for workbench data
 const props = defineProps<{
-  rows: Array<{ size: number; color: string; pieces: number; rate: number; subtotal: number }>
+  rows: Array<{ size: number | string; color: string; pieces: number; rate: number; subtotal: number }>
   totalPieces: number
   subtotal: number
   processSurcharge: number

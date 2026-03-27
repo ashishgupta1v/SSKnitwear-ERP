@@ -17,6 +17,9 @@ import type {
   SaveOrderInput,
 } from '../types/order'
 
+const MAX_REFERENCE_IMAGE_SIZE = 2 * 1024 * 1024
+const ALLOWED_REFERENCE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
 // Utility function to normalize numbers with fallback
 const normalizeNumber = (value: unknown, fallback = 0) => {
   const num = Number(value)
@@ -50,6 +53,13 @@ const normalizeItemOptions = (options: unknown): string[] => {
 
   return normalized.length ? normalized : [...DEFAULT_ITEM_OPTIONS]
 }
+
+const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result ?? ''))
+  reader.onerror = () => reject(new Error('Unable to read the selected image.'))
+  reader.readAsDataURL(file)
+})
 
 // Main composable for order entry state management
 export const useOrderEntry = () => {
@@ -214,6 +224,10 @@ export const useOrderEntry = () => {
         process_rate: normalizeNumber(parsed.process_rate, 0),
         transport_details: String(parsed.transport_details ?? ''),
         gst_percent: normalizeNumber(parsed.gst_percent, defaults.gst_percent),
+        reference_image_name: String(parsed.reference_image_name ?? ''),
+        reference_image_data: typeof parsed.reference_image_data === 'string' && parsed.reference_image_data.trim()
+          ? parsed.reference_image_data
+          : null,
         items:
           Array.isArray(parsed.items) && parsed.items.length
             ? parsed.items.map((row) => normalizeItemRow(row))
@@ -309,6 +323,38 @@ export const useOrderEntry = () => {
     }
   }
 
+  const setReferenceImage = async (file: File | null) => {
+    if (!file) {
+      form.value.reference_image_name = ''
+      form.value.reference_image_data = null
+      return
+    }
+
+    if (!ALLOWED_REFERENCE_IMAGE_TYPES.has(file.type)) {
+      feedback.value = 'Upload JPG, PNG, or WEBP image only.'
+      return
+    }
+
+    if (file.size > MAX_REFERENCE_IMAGE_SIZE) {
+      feedback.value = 'Reference image must be 2 MB or smaller.'
+      return
+    }
+
+    try {
+      const imageData = await readFileAsDataUrl(file)
+      form.value.reference_image_name = file.name
+      form.value.reference_image_data = imageData
+      feedback.value = 'Reference image added successfully.'
+    } catch (error) {
+      feedback.value = error instanceof Error ? error.message : 'Unable to read the selected image.'
+    }
+  }
+
+  const clearReferenceImage = () => {
+    form.value.reference_image_name = ''
+    form.value.reference_image_data = null
+  }
+
   // Save the order via the data provider
   const saveOrder = async () => {
     if (savingOrder.value) {
@@ -370,6 +416,8 @@ export const useOrderEntry = () => {
       gstPercent: Number(form.value.gst_percent || 0),
       grandTotal: Number(grandTotal.value.toFixed(2)),
       embroideryDetails: embroiderySummary.value === 'No' ? null : embroiderySummary.value,
+      referenceImageName: form.value.reference_image_name.trim() || null,
+      referenceImageData: form.value.reference_image_data,
       items: orderItems,
     }
 
@@ -398,7 +446,39 @@ export const useOrderEntry = () => {
       return
     }
 
+    const html = document.documentElement
+    const body = document.body
+    const wasDark = html.classList.contains('theme-dark') || body.classList.contains('theme-dark')
+
+    if (!wasDark) {
+      window.print()
+      return
+    }
+
+    let restored = false
+
+    const restoreTheme = () => {
+      if (restored) {
+        return
+      }
+
+      restored = true
+      html.classList.remove('theme-light')
+      body.classList.remove('theme-light')
+      html.classList.add('theme-dark')
+      body.classList.add('theme-dark')
+      html.style.colorScheme = 'dark'
+    }
+
+    html.classList.remove('theme-dark')
+    body.classList.remove('theme-dark')
+    html.classList.add('theme-light')
+    body.classList.add('theme-light')
+    html.style.colorScheme = 'light'
+
+    window.addEventListener('afterprint', restoreTheme, { once: true })
     window.print()
+    setTimeout(restoreTheme, 1000)
   }
 
   // Watch for embroidery toggle to reset placements
@@ -506,6 +586,8 @@ export const useOrderEntry = () => {
     removeSizeRow,
     addCustomItemOption,
     addParty,
+    setReferenceImage,
+    clearReferenceImage,
     saveOrder,
     resetForm,
     printBill,

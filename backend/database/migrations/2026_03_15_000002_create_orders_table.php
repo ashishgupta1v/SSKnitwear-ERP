@@ -30,7 +30,7 @@ return new class extends Migration {
             $table->boolean('is_printing')->default(false);
 
             $table->decimal('process_rate', 10, 2)->default(0);     // Per-piece rate (INR)
-            $table->string('transport_details')->nullable();         // Lorry / courier / self pickup
+            $table->string('transport_details')->nullable();         // Transport / courier / self pickup
             $table->decimal('gst_percent', 5, 2)->default(5.00);    // Standard knitwear GST is 5%
             $table->decimal('grand_total', 12, 2)->default(0);      // Stored for fast reporting
 

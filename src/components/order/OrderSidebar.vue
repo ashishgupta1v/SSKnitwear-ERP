@@ -27,7 +27,18 @@ const emit = defineEmits<{
   (e: 'update:custom-item-name', value: string): void
   (e: 'add-party'): void
   (e: 'add-item'): void
+  (e: 'upload-reference-image', file: File | null): void
+  (e: 'clear-reference-image'): void
 }>()
+
+const handleReferenceImageChange = (event: Event) => {
+  const input = event.target as HTMLInputElement | null
+  emit('upload-reference-image', input?.files?.[0] ?? null)
+
+  if (input) {
+    input.value = ''
+  }
+}
 
 // Local reactive copies for v-model bindings
 const localForm = ref({ ...props.form })
@@ -144,6 +155,44 @@ watch(localCustomItemName, (newValue) => { if (!syncingFromProps) emit('update:c
       </button>
     </div>
 
+    <div class="rounded-xl border border-slate-200 p-3 text-sm">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="font-medium text-slate-800">Reference Image (Optional)</p>
+          <p class="mt-1 text-xs text-slate-500">Upload JPG, PNG, or WEBP up to 2 MB.</p>
+        </div>
+        <label class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+          Upload
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            class="hidden"
+            @change="handleReferenceImageChange"
+          />
+        </label>
+      </div>
+
+      <div v-if="localForm.reference_image_data" class="mt-3 space-y-3">
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2">
+          <img
+            :src="localForm.reference_image_data"
+            :alt="localForm.reference_image_name || 'Reference image preview'"
+            class="max-h-56 w-full rounded-lg object-contain"
+          />
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="min-w-0 truncate text-xs text-slate-500">{{ localForm.reference_image_name || 'Selected image' }}</span>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+            @click="emit('clear-reference-image')"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Embroidery configuration section -->
     <div class="rounded-xl border border-slate-200 p-3 text-sm">
       <p class="font-medium text-slate-800">Embroidery</p>
@@ -212,7 +261,7 @@ watch(localCustomItemName, (newValue) => { if (!syncingFromProps) emit('update:c
     <!-- Transport details input -->
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Transport Details</label>
-      <input v-model="localForm.transport_details" type="text" placeholder="Lorry / courier / self pickup" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <input v-model="localForm.transport_details" type="text" placeholder="Transport / courier / self pickup" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
     </div>
 
     <!-- Feedback message display (error = red, success = teal) -->

@@ -209,6 +209,13 @@ onMounted(loadOrders)
               #{{ order.id }}
             </span>
 
+            <img
+              v-if="order.reference_image_data"
+              :src="order.reference_image_data"
+              :alt="order.reference_image_name || `Reference image for order ${order.id}`"
+              class="h-12 w-12 shrink-0 rounded-lg border border-slate-200 object-cover"
+            />
+
             <!-- Main info -->
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -241,6 +248,18 @@ onMounted(loadOrders)
             <div v-if="loadingDetail" class="py-4 text-center text-sm text-slate-400">Loading details...</div>
 
             <div v-else-if="expandedOrder" class="space-y-4">
+              <div v-if="expandedOrder.reference_image_data" class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div class="mb-2 flex items-center justify-between gap-3">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reference Image</h3>
+                  <span class="text-xs text-slate-400">{{ expandedOrder.reference_image_name || 'Uploaded image' }}</span>
+                </div>
+                <img
+                  :src="expandedOrder.reference_image_data"
+                  :alt="expandedOrder.reference_image_name || `Reference image for order ${expandedOrder.id}`"
+                  class="max-h-72 w-full rounded-lg object-contain"
+                />
+              </div>
+
               <!-- Order metadata grid -->
               <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
                 <div>

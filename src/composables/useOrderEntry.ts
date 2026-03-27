@@ -24,7 +24,7 @@ const normalizeNumber = (value: unknown, fallback = 0) => {
 
 // Utility function to normalize item rows from partial data
 const normalizeItemRow = (row: Partial<ItemRow> | null | undefined): ItemRow => ({
-  size: String(row?.size ?? '').trim(),
+  size: normalizeNumber(row?.size, 0),
   color: String(row?.color ?? '').trim(),
   pieces: normalizeNumber(row?.pieces, 0),
   rate: normalizeNumber(row?.rate, 0),
@@ -191,8 +191,8 @@ export const useOrderEntry = () => {
         is_embroidery: Boolean(parsed.is_embroidery),
         embroidery_placements: Array.isArray(parsed.embroidery_placements)
           ? parsed.embroidery_placements.filter(
-              (value): value is EmbroideryPlacement => value === 'Front' || value === 'Back' || value === 'Others',
-            )
+            (value): value is EmbroideryPlacement => value === 'Front' || value === 'Back' || value === 'Others',
+          )
           : [],
         embroidery_others_text: String(parsed.embroidery_others_text ?? ''),
         is_batch: Boolean(parsed.is_batch),
@@ -216,7 +216,7 @@ export const useOrderEntry = () => {
 
   // Add a new size row to the form
   const addSizeRow = () => {
-    form.value.items.push(makeItem('Custom'))
+    form.value.items.push(makeItem())
   }
 
   // Remove a size row by index, minimum 1 row
@@ -326,7 +326,7 @@ export const useOrderEntry = () => {
     const orderItems = rows.value
       .filter((row) => Number(row.pieces || 0) > 0)
       .map((row) => ({
-        size: row.size,
+        size: Number(row.size || 0),
         color: row.color?.trim() || null,
         pieces: Number(row.pieces || 0),
         rate: Number(row.rate || 0),

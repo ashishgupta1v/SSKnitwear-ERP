@@ -1,6 +1,5 @@
 import type { DraftForm, ItemRow } from '../types/order'
 
-export const DEFAULT_SIZES = ['32', '34', '36', '38', '40', '42', '44']
 export const DEFAULT_ITEM_OPTIONS = ['Lower / Track Pant', 'T-Shirt', 'Hoodie', 'Shorts']
 export const DRAFT_KEY = 'ssk_phase_switch_order_draft'
 export const ITEM_OPTIONS_KEY = 'ssk_phase_switch_item_options'
@@ -23,5 +22,5 @@ export const getDefaultForm = (): DraftForm => ({
   process_rate: 0,
   transport_details: '',
   gst_percent: 5,
-  items: DEFAULT_SIZES.map((size) => makeItem(size)),
+  items: [makeItem()],
 })

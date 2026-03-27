@@ -21,15 +21,15 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
 
 <template>
   <div class="print-only">
-    <div class="bg-white p-8 text-gray-900">
+    <div class="print-sheet bg-white p-8 text-gray-900">
       <!-- Company Header -->
-      <div class="mb-8 border-b-2 border-gray-300 pb-4">
+      <div class="print-no-break mb-8 border-b-2 border-gray-300 pb-4">
         <h1 class="text-3xl font-bold text-teal-700">SINGHAL SONS KNITWEAR</h1>
         <p class="text-sm text-gray-600">Order Invoice</p>
       </div>
 
       <!-- Order Header Info -->
-      <div class="mb-8 grid grid-cols-2 gap-8">
+      <div class="print-two-col print-no-break mb-8 grid grid-cols-2 gap-8">
         <!-- Party Details -->
         <div>
           <h3 class="mb-2 text-sm font-semibold text-gray-700">CUSTOMER DETAILS</h3>
@@ -53,9 +53,9 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
         </div>
       </div>
 
-      <div v-if="form.reference_image_data" class="mb-8">
+      <div v-if="form.reference_image_data" class="print-no-break mb-8">
         <h3 class="mb-3 text-sm font-semibold text-gray-700">REFERENCE IMAGE</h3>
-        <div class="flex items-start justify-between gap-4 rounded-xl border border-gray-300 p-3">
+        <div class="print-image-block flex items-start justify-between gap-4 rounded-xl border border-gray-300 p-3">
           <div>
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">File</p>
             <p class="mt-1 text-sm text-gray-700">{{ form.reference_image_name || 'Uploaded reference image' }}</p>
@@ -69,7 +69,7 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
       </div>
 
       <!-- Items Table -->
-      <div class="mb-8">
+      <div class="print-no-break mb-8">
         <h3 class="mb-3 text-sm font-semibold text-gray-700">ORDER ITEMS</h3>
         <table class="w-full border-collapse border border-gray-300 text-sm">
           <thead>
@@ -94,7 +94,7 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
       </div>
 
       <!-- Summary Section -->
-      <div class="mb-8 grid grid-cols-2 gap-8">
+      <div class="print-two-col mb-8 grid grid-cols-2 gap-8">
         <!-- Special Details -->
         <div v-if="form.is_embroidery || form.is_batch || form.is_printing || form.transport_details">
           <h3 class="mb-2 text-sm font-semibold text-gray-700">SPECIAL REQUIREMENTS</h3>
@@ -139,7 +139,7 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
       </div>
 
       <!-- Footer -->
-      <div class="border-t-2 border-gray-300 pt-4 text-center text-xs text-gray-600">
+      <div class="print-no-break border-t-2 border-gray-300 pt-4 text-center text-xs text-gray-600">
         <p>This is a computer-generated invoice. No signature required.</p>
         <p>Thank you for your business!</p>
       </div>
@@ -152,9 +152,55 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
   display: none;
 }
 
+.print-sheet {
+  width: 100%;
+}
+
+.print-no-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media (max-width: 768px) {
+  .print-image-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .print-image-block img {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 @media print {
   .print-only {
-    display: block;
+    display: block !important;
+  }
+
+  .print-sheet {
+    max-width: 186mm;
+    margin: 0 auto;
+    padding: 0;
+    font-size: 11pt;
+    line-height: 1.35;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .print-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6mm;
+  }
+
+  .print-image-block {
+    align-items: center;
+  }
+
+  .print-image-block img {
+    max-height: 52mm;
+    max-width: 70mm;
   }
 
   /* Hide non-print content */
@@ -164,11 +210,25 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
 
   /* Optimize for print */
   :global(body) {
+    width: 210mm;
     margin: 0;
     padding: 0;
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  div {
+  :global(html) {
+    width: 210mm;
+    background: #ffffff !important;
+  }
+
+  div,
+  table,
+  tr,
+  td,
+  th {
     page-break-inside: avoid;
   }
 }

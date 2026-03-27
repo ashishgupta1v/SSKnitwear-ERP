@@ -66,6 +66,8 @@ const embroiderySummary = computed(() => order.embroiderySummary.value)
         @update:custom-item-name="order.customItemName.value = $event"
         @add-party="order.addParty"
         @add-item="order.addCustomItemOption"
+        @upload-reference-image="order.setReferenceImage"
+        @clear-reference-image="order.clearReferenceImage"
       />
 
       <OrderWorkbench

@@ -116,6 +116,8 @@ class OrderController extends Controller
             'transport_details' => ['nullable', 'string', 'max:255'],
             'gst_percent'       => ['nullable', 'numeric', 'min:0'],
             'grand_total'       => ['required', 'numeric', 'min:0'],
+            'reference_image_name' => ['nullable', 'string', 'max:255'],
+            'reference_image_data' => ['nullable', 'string'],
             'items'             => ['required', 'array', 'min:1'],
             'items.*.size'      => ['required', 'string', 'max:20'],
             'items.*.color'     => ['nullable', 'string', 'max:50'],
@@ -138,6 +140,8 @@ class OrderController extends Controller
                 'transport_details' => $validated['transport_details'] ?? null,
                 'gst_percent'       => $validated['gst_percent'] ?? 5,
                 'grand_total'       => $validated['grand_total'],
+                'reference_image_name' => $validated['reference_image_name'] ?? null,
+                'reference_image_data' => $validated['reference_image_data'] ?? null,
             ]);
 
             // Only persist rows where pieces > 0 to avoid empty rows in the invoice.

@@ -53,6 +53,21 @@ const getOrderItems = (rows: ItemRow[]) => rows.filter((row) => Number(row.piece
         </div>
       </div>
 
+      <div v-if="form.reference_image_data" class="mb-8">
+        <h3 class="mb-3 text-sm font-semibold text-gray-700">REFERENCE IMAGE</h3>
+        <div class="flex items-start justify-between gap-4 rounded-xl border border-gray-300 p-3">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">File</p>
+            <p class="mt-1 text-sm text-gray-700">{{ form.reference_image_name || 'Uploaded reference image' }}</p>
+          </div>
+          <img
+            :src="form.reference_image_data"
+            :alt="form.reference_image_name || 'Reference image'"
+            class="max-h-56 max-w-[18rem] rounded-lg border border-gray-200 object-contain"
+          />
+        </div>
+      </div>
+
       <!-- Items Table -->
       <div class="mb-8">
         <h3 class="mb-3 text-sm font-semibold text-gray-700">ORDER ITEMS</h3>

@@ -63,6 +63,11 @@ const requestJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return payload as T
 }
 
+const isMissingReferenceImageColumnError = (message: string) => {
+  const normalized = String(message || '').toLowerCase()
+  return normalized.includes('reference_image_name') || normalized.includes('reference_image_data')
+}
+
 // Fetch list of parties from the configured provider
 export const listParties = async (): Promise<Party[]> => {
   if (providerMode === 'laravel') {
@@ -140,6 +145,8 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
         transport_details: payload.transportDetails,
         gst_percent: payload.gstPercent,
         grand_total: payload.grandTotal,
+        reference_image_name: payload.referenceImageName ?? null,
+        reference_image_data: payload.referenceImageData ?? null,
         items: payload.items,
       }),
     })
@@ -156,28 +163,55 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
     throw new Error('Supabase is not configured.')
   }
 
-  // Insert order header into Supabase
-  const { data: createdOrder, error: orderError } = await supabase
+  const coreOrderPayload = {
+    party_id: payload.partyId,
+    item_name: payload.itemName,
+    is_embroidery: payload.isEmbroidery,
+    embroidery_details: payload.embroideryDetails ?? null,
+    is_batch: payload.isBatch,
+    is_printing: payload.isPrinting,
+    process_rate: payload.processRate,
+    transport_details: payload.transportDetails,
+    gst_percent: payload.gstPercent,
+    grand_total: payload.grandTotal,
+  }
+
+  const orderPayloadWithImage = {
+    ...coreOrderPayload,
+    reference_image_name: payload.referenceImageName ?? null,
+    reference_image_data: payload.referenceImageData ?? null,
+  }
+
+  let imageColumnsUnavailable = false
+  let createdOrder: { id: number } | null = null
+
+  const initialInsert = await supabase
     .from('orders')
-    .insert([
-      {
-        party_id: payload.partyId,
-        item_name: payload.itemName,
-        is_embroidery: payload.isEmbroidery,
-        embroidery_details: payload.embroideryDetails ?? null,
-        is_batch: payload.isBatch,
-        is_printing: payload.isPrinting,
-        process_rate: payload.processRate,
-        transport_details: payload.transportDetails,
-        gst_percent: payload.gstPercent,
-        grand_total: payload.grandTotal,
-      },
-    ])
+    .insert([orderPayloadWithImage])
     .select('id')
     .single()
 
-  if (orderError || !createdOrder) {
-    throw new Error(orderError?.message ?? 'Unable to save order.')
+  if (!initialInsert.error && initialInsert.data) {
+    createdOrder = initialInsert.data as { id: number }
+  } else if (initialInsert.error && isMissingReferenceImageColumnError(initialInsert.error.message)) {
+    imageColumnsUnavailable = true
+    const fallbackInsert = await supabase
+      .from('orders')
+      .insert([coreOrderPayload])
+      .select('id')
+      .single()
+
+    if (fallbackInsert.error || !fallbackInsert.data) {
+      throw new Error(fallbackInsert.error?.message ?? 'Unable to save order.')
+    }
+
+    createdOrder = fallbackInsert.data as { id: number }
+  } else {
+    throw new Error(initialInsert.error?.message ?? 'Unable to save order.')
+  }
+
+  if (!createdOrder) {
+    throw new Error('Unable to save order.')
   }
 
   // Prepare order items payload
@@ -220,7 +254,10 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
   // Return success result (no PDF URL for Supabase mode)
   return {
     orderId: createdOrder.id,
-    message: `Order #${createdOrder.id} saved successfully.`,
+    message:
+      imageColumnsUnavailable && payload.referenceImageData
+        ? `Order #${createdOrder.id} saved, but image was skipped because database image columns are missing.`
+        : `Order #${createdOrder.id} saved successfully.`,
     pdfUrl: null,
   }
 }
@@ -235,16 +272,33 @@ export const listOrders = async (): Promise<OrderSummary[]> => {
     throw new Error('Supabase is not configured.')
   }
 
-  const { data, error } = await supabase
+  const queryWithImage = await supabase
+    .from('orders')
+    .select('id, party_id, item_name, grand_total, created_at, reference_image_name, reference_image_data, party:parties(name, city)')
+    .order('created_at', { ascending: false })
+
+  if (!queryWithImage.error) {
+    return (queryWithImage.data ?? []) as unknown as OrderSummary[]
+  }
+
+  if (!isMissingReferenceImageColumnError(queryWithImage.error.message)) {
+    throw new Error(queryWithImage.error.message)
+  }
+
+  const queryFallback = await supabase
     .from('orders')
     .select('id, party_id, item_name, grand_total, created_at, party:parties(name, city)')
     .order('created_at', { ascending: false })
 
-  if (error) {
-    throw new Error(error.message)
+  if (queryFallback.error) {
+    throw new Error(queryFallback.error.message)
   }
 
-  return (data ?? []) as unknown as OrderSummary[]
+  return (queryFallback.data ?? []).map((order) => ({
+    ...(order as Record<string, unknown>),
+    reference_image_name: null,
+    reference_image_data: null,
+  })) as unknown as OrderSummary[]
 }
 
 // Fetch a single order with party info and line items
@@ -257,15 +311,33 @@ export const fetchOrder = async (orderId: number): Promise<OrderDetail> => {
     throw new Error('Supabase is not configured.')
   }
 
-  const { data, error } = await supabase
+  const queryWithImage = await supabase
+    .from('orders')
+    .select('id, party_id, item_name, is_embroidery, embroidery_details, is_batch, is_printing, process_rate, transport_details, gst_percent, grand_total, created_at, reference_image_name, reference_image_data, party:parties(name, city, phone, gst_no), items:order_items(id, size, color, pieces, rate, subtotal)')
+    .eq('id', orderId)
+    .single()
+
+  if (!queryWithImage.error && queryWithImage.data) {
+    return queryWithImage.data as unknown as OrderDetail
+  }
+
+  if (!isMissingReferenceImageColumnError(queryWithImage.error?.message ?? '')) {
+    throw new Error(queryWithImage.error?.message ?? 'Order not found.')
+  }
+
+  const queryFallback = await supabase
     .from('orders')
     .select('id, party_id, item_name, is_embroidery, embroidery_details, is_batch, is_printing, process_rate, transport_details, gst_percent, grand_total, created_at, party:parties(name, city, phone, gst_no), items:order_items(id, size, color, pieces, rate, subtotal)')
     .eq('id', orderId)
     .single()
 
-  if (error || !data) {
-    throw new Error(error?.message ?? 'Order not found.')
+  if (queryFallback.error || !queryFallback.data) {
+    throw new Error(queryFallback.error?.message ?? 'Order not found.')
   }
 
-  return data as unknown as OrderDetail
+  return {
+    ...(queryFallback.data as Record<string, unknown>),
+    reference_image_name: null,
+    reference_image_data: null,
+  } as unknown as OrderDetail
 }

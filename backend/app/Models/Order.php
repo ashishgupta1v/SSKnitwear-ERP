@@ -48,6 +48,8 @@ class Order extends Model
         'transport_details',
         'gst_percent',
         'grand_total',
+        'reference_image_name',
+        'reference_image_data',
     ];
 
     /**

@@ -22,5 +22,7 @@ export const getDefaultForm = (): DraftForm => ({
   process_rate: 0,
   transport_details: '',
   gst_percent: 5,
+  reference_image_name: '',
+  reference_image_data: null,
   items: [makeItem()],
 })

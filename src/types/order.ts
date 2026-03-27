@@ -36,6 +36,8 @@ export type DraftForm = {
   process_rate: number
   transport_details: string
   gst_percent: number
+  reference_image_name: string
+  reference_image_data: string | null
   items: ItemRow[]
 }
 
@@ -58,6 +60,8 @@ export type SaveOrderInput = {
   gstPercent: number
   grandTotal: number
   embroideryDetails?: string | null
+  referenceImageName?: string | null
+  referenceImageData?: string | null
   items: OrderLineInput[]
 }
 
@@ -73,6 +77,8 @@ export type OrderSummary = {
   item_name: string
   grand_total: number
   created_at: string
+  reference_image_name?: string | null
+  reference_image_data?: string | null
   party?: { name: string; city: string | null } | null
 }
 
@@ -89,6 +95,8 @@ export type OrderDetail = {
   gst_percent: number
   grand_total: number
   created_at: string
+  reference_image_name?: string | null
+  reference_image_data?: string | null
   party?: { name: string; city: string | null; phone: string | null; gst_no: string | null } | null
   items?: OrderDetailItem[]
 }

@@ -18,7 +18,7 @@ export type QuickParty = {
 export type EmbroideryPlacement = 'Front' | 'Back' | 'Others'
 
 export type ItemRow = {
-  size: string
+  size: number | string
   color: string
   pieces: number
   rate: number
@@ -39,7 +39,7 @@ export type DraftForm = {
 }
 
 export type OrderLineInput = {
-  size: string
+  size: number | string
   color: string | null
   pieces: number
   rate: number

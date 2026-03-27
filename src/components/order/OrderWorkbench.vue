@@ -4,7 +4,7 @@ import type { DraftForm, Party } from '../../types/order'
 
 // Define props for workbench data
 const props = defineProps<{
-  rows: Array<{ size: string; color: string; pieces: number; rate: number; subtotal: number }>
+  rows: Array<{ size: number | string; color: string; pieces: number; rate: number; subtotal: number }>
   totalPieces: number
   subtotal: number
   processSurcharge: number
@@ -87,9 +87,9 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
         </thead>
         <tbody>
           <!-- Table rows for each item -->
-          <tr v-for="(item, index) in localForm.items" :key="`${item.size}-${index}`">
+          <tr v-for="(item, index) in localForm.items" :key="index">
             <td class="border border-slate-200 px-3 py-2">
-              <input v-model="item.size" type="text" class="w-24 rounded-lg border border-slate-300 px-2 py-1" />
+              <input v-model.number="item.size" type="number" min="0" class="w-24 rounded-lg border border-slate-300 px-2 py-1" />
             </td>
             <td class="border border-slate-200 px-3 py-2">
               <input v-model="item.color" type="text" class="w-full rounded-lg border border-slate-300 px-2 py-1" />

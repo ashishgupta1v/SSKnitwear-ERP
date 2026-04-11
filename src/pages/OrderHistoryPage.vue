@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { listOrders, fetchOrder, providerConfigured } from '../services/orderDataProvider'
+import { listOrders, fetchOrder, deleteOrder, providerConfigured } from '../services/orderDataProvider'
 import { useTheme } from '../composables/useTheme'
 import { formatDateIST, formatDateTimeIST } from '../lib/dateFormatter'
 import type { OrderSummary, OrderDetail } from '../types/order'
@@ -11,12 +11,14 @@ const { isDark, toggleTheme } = useTheme()
 const orders = ref<OrderSummary[]>([])
 const loading = ref(false)
 const error = ref('')
+const success = ref('')
 const searchQuery = ref('')
 
 // Expanded order detail
 const expandedOrderId = ref<number | null>(null)
 const expandedOrder = ref<OrderDetail | null>(null)
 const loadingDetail = ref(false)
+const deletingOrderId = ref<number | null>(null)
 
 const filteredOrders = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -47,12 +49,44 @@ const loadOrders = async () => {
   }
   loading.value = true
   error.value = ''
+  success.value = ''
   try {
     orders.value = await listOrders()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unable to load orders.'
   } finally {
     loading.value = false
+  }
+}
+
+const removeOrder = async (order: OrderSummary) => {
+  if (deletingOrderId.value) {
+    return
+  }
+
+  const confirmed = window.confirm(`Delete Order #${order.id}? This action cannot be undone.`)
+  if (!confirmed) {
+    return
+  }
+
+  deletingOrderId.value = order.id
+  error.value = ''
+  success.value = ''
+
+  try {
+    const result = await deleteOrder(order.id)
+    orders.value = orders.value.filter((o) => o.id !== order.id)
+
+    if (expandedOrderId.value === order.id) {
+      expandedOrderId.value = null
+      expandedOrder.value = null
+    }
+
+    success.value = result.message
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unable to delete order.'
+  } finally {
+    deletingOrderId.value = null
   }
 }
 
@@ -166,14 +200,17 @@ onMounted(loadOrders)
         />
       </div>
 
+      <div v-if="error" class="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        {{ error }}
+      </div>
+
+      <div v-if="success" class="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        {{ success }}
+      </div>
+
       <!-- Loading state -->
       <div v-if="loading" class="flex items-center justify-center py-16">
         <div class="text-sm text-slate-500">Loading orders...</div>
-      </div>
-
-      <!-- Error state -->
-      <div v-else-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-        {{ error }}
       </div>
 
       <!-- Empty state -->
@@ -200,10 +237,11 @@ onMounted(loadOrders)
           class="rounded-xl border border-slate-200 bg-white shadow-sm transition"
         >
           <!-- Summary row (clickable) -->
-          <button
-            class="flex w-full items-center gap-4 px-4 py-3 text-left transition hover:bg-slate-50"
-            @click="toggleDetail(order.id)"
-          >
+          <div class="flex items-center gap-2 px-2 py-2 sm:px-3">
+            <button
+              class="flex flex-1 items-center gap-4 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50"
+              @click="toggleDetail(order.id)"
+            >
             <!-- Order ID badge -->
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-xs font-bold text-teal-700">
               #{{ order.id }}
@@ -233,15 +271,25 @@ onMounted(loadOrders)
               <p class="text-sm font-semibold text-slate-900">&#8377; {{ formatMoney(order.grand_total) }}</p>
             </div>
 
-            <!-- Expand chevron -->
-            <svg
-              class="h-4 w-4 shrink-0 text-slate-400 transition-transform"
-              :class="{ 'rotate-180': expandedOrderId === order.id }"
-              xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+              <!-- Expand chevron -->
+              <svg
+                class="h-4 w-4 shrink-0 text-slate-400 transition-transform"
+                :class="{ 'rotate-180': expandedOrderId === order.id }"
+                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+              >
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="deletingOrderId === order.id"
+              @click="removeOrder(order)"
             >
-              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-            </svg>
-          </button>
+              {{ deletingOrderId === order.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
 
           <!-- Expanded detail -->
           <div v-if="expandedOrderId === order.id" class="border-t border-slate-100 px-4 py-4">

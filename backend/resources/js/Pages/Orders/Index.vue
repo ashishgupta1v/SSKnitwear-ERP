@@ -301,7 +301,7 @@ const printBill = () => {
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Transport Details</label>
-                    <input v-model="form.transport_details" type="text" placeholder="Lorry / courier / self pickup" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    <input v-model="form.transport_details" type="text" placeholder="Transport / courier / self pickup" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 </div>
 
                 <div v-if="feedback" class="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-800">

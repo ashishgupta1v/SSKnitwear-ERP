@@ -5,7 +5,7 @@ return [
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS)
     |--------------------------------------------------------------------------
-    | Allows the root Vite / Netlify prototype to call Laravel API endpoints
+    | Allows the root Vite / Vercel frontend to call Laravel API endpoints
     | when VITE_DATA_PROVIDER=laravel. Add your deployed frontend URLs to the
     | FRONTEND_URLS env variable.
     */
@@ -19,7 +19,7 @@ return [
     ))),
 
     'allowed_origins_patterns' => [
-        '#^https://.*\.netlify\.app$#',
+        '#^https://.*\.vercel\.app$#',
     ],
 
     'allowed_headers' => ['*'],

@@ -4,16 +4,16 @@ Lightweight textile order management and billing system for Singhal Sons Knitwea
 
 ## Workspace structure
 
-- Root app: Phase 1 Vite prototype for rapid Netlify deployment.
+- Root app: Phase 1 Vite prototype with Vercel deployment.
 - [backend/](backend): Phase 2 full Laravel 11 + Inertia + Vue + Browsershot implementation.
 
-## Phase 1: Lightning Prototype (Netlify + Supabase)
+## Phase 1: Lightning Prototype (Vercel + Supabase)
 
 Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 
 ### Why this phase exists
 
-- Fastest path to production-like demo on Netlify
+- Fastest path to production-like demo with Vercel + Supabase
 - Real-time billing calculations directly in the browser
 - Direct persistence to Supabase tables (`parties`, `orders`, `order_items`)
 
@@ -38,16 +38,17 @@ Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 - `laravel`: root app calls Laravel JSON endpoints for parties/order save and opens Laravel-generated PDF output.
 - The UI stays the same in both modes.
 
-### Netlify deployment
+### Vercel deployment
 
 1. Push the repo to GitHub.
-2. In Netlify, create a new site from that GitHub repo.
-3. Build settings:
+2. In Vercel, create a new project linked to that GitHub repo.
+3. Build settings are auto-detected from `vercel.json`:
 	- Build command: `npm run build`
 	- Publish directory: `dist`
-4. Add environment variables in Netlify Site Settings:
-	- `VITE_SUPABASE_URL`
-	- `VITE_SUPABASE_ANON_KEY`
+4. Add environment variables in Vercel Project Settings:
+	- `VITE_SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`)
+	- `VITE_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+	- `VITE_DATA_PROVIDER=supabase`
 5. Trigger deploy.
 
 ### Phase 1 limitation
@@ -55,13 +56,7 @@ Architecture: Vue 3 + Tailwind (CDN) + Supabase JavaScript client.
 - PDF generation is browser-native only (`window.print()` → Save as PDF).
 - Server-side PDF generation (Spatie/Browsershot) is available in Phase 2 backend.
 
-### Platform check: Can Netlify run Spatie/Browsershot?
-
-- Short answer: **No, not reliably for this project model**.
-- Reason: Browsershot requires a server runtime with Chrome/Chromium + system libs, while this root app on Netlify is a static Vite deployment.
-- Result: Keep Phase 1 on Netlify for fast UI iteration and browser print only.
-
-### When to move to Laravel + VPS (Forge / DigitalOcean)
+### When to move to Laravel + VPS (Forge / DigitalOcean / App Service)
 
 Move to Phase 2 backend hosting when you need any of the following:
 

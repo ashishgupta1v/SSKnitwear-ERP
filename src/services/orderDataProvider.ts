@@ -359,3 +359,34 @@ export const fetchOrder = async (orderId: number): Promise<OrderDetail> => {
     reference_image_data: null,
   } as unknown as OrderDetail
 }
+
+// Delete a single order (and associated items) via the configured provider
+export const deleteOrder = async (orderId: number): Promise<{ message: string }> => {
+  if (providerMode === 'laravel') {
+    return requestJson<{ message: string }>(`/api/orders/${orderId}`, { method: 'DELETE' })
+  }
+
+  if (!supabase) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const { error: itemDeleteError } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId)
+
+  if (itemDeleteError) {
+    throw new Error(itemDeleteError.message)
+  }
+
+  const { error: orderDeleteError } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId)
+
+  if (orderDeleteError) {
+    throw new Error(orderDeleteError.message)
+  }
+
+  return { message: `Order #${orderId} deleted successfully.` }
+}

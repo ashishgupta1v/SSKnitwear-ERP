@@ -49,7 +49,7 @@
     </div>
 
     <!-- Success Banner - Show if configured -->
-    <div v-else class="bg-green-50 border-2 border-green-300 rounded-lg p-4 shadow-lg">
+    <!-- <div v-else class="bg-green-50 border-2 border-green-300 rounded-lg p-4 shadow-lg">
       <div class="flex items-start gap-3">
         <div class="text-green-600 text-xl mt-1">✅</div>
         <div class="flex-1">
@@ -63,7 +63,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Detailed Debug Info -->
     <div v-if="showDetails" class="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs font-mono mt-4 shadow-lg">

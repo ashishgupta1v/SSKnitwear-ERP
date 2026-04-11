@@ -170,6 +170,23 @@ class OrderController extends Controller
     }
 
     /**
+     * Delete an order and its items.
+     *
+     * This endpoint supports the root Vite app in Laravel API mode.
+     */
+    public function destroy(Order $order): JsonResponse
+    {
+        DB::transaction(function () use ($order): void {
+            $order->items()->delete();
+            $order->delete();
+        });
+
+        return response()->json([
+            'message' => 'Order deleted successfully.',
+        ]);
+    }
+
+    /**
      * Generate and stream a PDF invoice for the given order.
      *
      * The Blade invoice template is rendered to an HTML string, then passed to

@@ -15,4 +15,5 @@ use Illuminate\Support\Facades\Route;
 Route::get('/parties', [OrderController::class, 'listParties'])->name('api.parties.index');
 Route::post('/parties', [OrderController::class, 'storeParty'])->name('api.parties.store');
 Route::post('/orders', [OrderController::class, 'store'])->name('api.orders.store');
+Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('api.orders.destroy');
 Route::get('/orders/{order}/pdf', [OrderController::class, 'generatePdf'])->name('api.orders.pdf');

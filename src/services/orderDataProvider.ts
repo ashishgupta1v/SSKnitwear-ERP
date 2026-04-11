@@ -16,6 +16,24 @@ export const backendBaseUrl = String(rawBackendBaseUrl || 'http://127.0.0.1:8000
 // Check if the provider is configured (Supabase client exists or backend URL is set)
 export const providerConfigured = providerMode === 'laravel' ? Boolean(rawBackendBaseUrl) : Boolean(supabase)
 
+// Diagnostic logging
+const debugLog = {
+  supabaseClient: supabase ? 'initialized' : 'null',
+  providerMode,
+  providerConfigured,
+  backendBaseUrl,
+  timestamp: new Date().toISOString(),
+}
+
+if (!providerConfigured) {
+  console.error('❌ Provider not configured:', debugLog)
+} else {
+  console.log('✅ Provider configured:', debugLog)
+}
+
+// Export diagnostics for debugging
+export const providerDiagnostics = debugLog
+
 // Build full URL for backend API endpoints
 const buildBackendUrl = (path: string) => {
   if (/^https?:\/\//i.test(path)) {

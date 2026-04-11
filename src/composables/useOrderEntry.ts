@@ -6,7 +6,7 @@ import {
   getDefaultForm,
   makeItem,
 } from '../constants/order'
-import { createParty, listParties, persistOrder, providerConfigured, providerMode } from '../services/orderDataProvider'
+import { createParty, listParties, persistOrder, providerConfigured } from '../services/orderDataProvider'
 import { formatDateIST, formatDateTimeIST } from '../lib/dateFormatter'
 import type {
   DraftForm,
@@ -81,8 +81,6 @@ export const useOrderEntry = () => {
   const feedback = ref('')
   // ID of the last saved order
   const lastSavedOrderId = ref<number | null>(null)
-  // URL for the last generated PDF
-  const lastSavedPdfUrl = ref<string | null>(null)
   // Timestamp of the last saved order creation
   const orderCreatedAt = ref<string | null>(null)
   // Flag to prevent premature draft saves during hydration
@@ -101,7 +99,7 @@ export const useOrderEntry = () => {
 
   // Computed label for the current provider mode
   const modeLabel = computed(() => {
-    return providerMode === 'laravel' ? 'Phase 2 · Laravel API bridge' : 'Phase 1 · Supabase direct'
+    return 'Phase 1'
   })
 
   // Computed warning message if provider is not configured
@@ -110,9 +108,7 @@ export const useOrderEntry = () => {
       return ''
     }
 
-    return providerMode === 'laravel'
-      ? 'Laravel API mode is enabled but the backend URL is missing.'
-      : 'Supabase is not configured. Create .env from .env.example.'
+    return 'Supabase is not configured. Create .env from .env.example.'
   })
 
   // Computed boolean to enable save button
@@ -424,7 +420,6 @@ export const useOrderEntry = () => {
     try {
       const result = await persistOrder(payload)
       lastSavedOrderId.value = result.orderId
-      lastSavedPdfUrl.value = result.pdfUrl
       orderCreatedAt.value = new Date().toISOString()
       feedback.value = result.message
     } catch (error) {
@@ -436,16 +431,6 @@ export const useOrderEntry = () => {
 
   // Print the bill, either open PDF or trigger browser print
   const printBill = () => {
-    if (providerMode === 'laravel') {
-      if (!lastSavedPdfUrl.value) {
-        feedback.value = 'Save the order first to generate the Laravel PDF.'
-        return
-      }
-
-      window.open(lastSavedPdfUrl.value, '_blank', 'noopener,noreferrer')
-      return
-    }
-
     const html = document.documentElement
     const body = document.body
     const wasDark = html.classList.contains('theme-dark') || body.classList.contains('theme-dark')
@@ -532,7 +517,6 @@ export const useOrderEntry = () => {
   const resetForm = () => {
     form.value = getDefaultForm()
     lastSavedOrderId.value = null
-    lastSavedPdfUrl.value = null
     orderCreatedAt.value = null
     feedback.value = ''
     // Clear UI state

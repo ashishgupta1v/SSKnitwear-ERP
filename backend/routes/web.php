@@ -15,10 +15,18 @@
 use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
 
-// ----- Order Management -----
+// ----- Frontend Guidance -----
 
-// Show the order form with all parties and valid size list
-Route::get('/', [OrderController::class, 'index'])->name('orders.index');
+// Keep backend root simple so accidental opens do not land on old web flow.
+Route::get('/', function () {
+	return response(
+		'<h2>Use frontend on :5173</h2><p>Open <a href="http://localhost:5173">http://localhost:5173</a> (or your current Vite port).</p>',
+		200,
+		['Content-Type' => 'text/html; charset=UTF-8']
+	);
+})->name('backend.root.info');
+
+// ----- Order Management -----
 
 // Persist a new order together with its line items inside a DB transaction
 Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');

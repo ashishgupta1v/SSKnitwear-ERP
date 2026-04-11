@@ -1,5 +1,3 @@
-export type ProviderMode = 'supabase' | 'laravel'
-
 export type Party = {
   id: number
   name: string
@@ -68,7 +66,6 @@ export type SaveOrderInput = {
 export type SaveOrderResult = {
   orderId: number
   message: string
-  pdfUrl: string | null
 }
 
 export type OrderSummary = {

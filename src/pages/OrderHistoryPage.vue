@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { listOrders, fetchOrder, deleteOrder, providerConfigured } from '../services/orderDataProvider'
 import { useTheme } from '../composables/useTheme'
@@ -19,6 +19,8 @@ const expandedOrderId = ref<number | null>(null)
 const expandedOrder = ref<OrderDetail | null>(null)
 const loadingDetail = ref(false)
 const deletingOrderId = ref<number | null>(null)
+const deleteModalOpen = ref(false)
+const orderPendingDelete = ref<OrderSummary | null>(null)
 
 const filteredOrders = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -59,13 +61,38 @@ const loadOrders = async () => {
   }
 }
 
-const removeOrder = async (order: OrderSummary) => {
+const requestDeleteOrder = (order: OrderSummary) => {
   if (deletingOrderId.value) {
     return
   }
 
-  const confirmed = window.confirm(`Delete Order #${order.id}? This action cannot be undone.`)
-  if (!confirmed) {
+  orderPendingDelete.value = order
+  deleteModalOpen.value = true
+}
+
+const closeDeleteModal = (force = false) => {
+  if (deletingOrderId.value && !force) {
+    return
+  }
+
+  deleteModalOpen.value = false
+  // Keep data briefly so leave animation can finish cleanly.
+  setTimeout(() => {
+    orderPendingDelete.value = null
+  }, 180)
+}
+
+const handleCloseDeleteModal = () => {
+  closeDeleteModal()
+}
+
+const removeOrder = async () => {
+  const order = orderPendingDelete.value
+  if (!order) {
+    return
+  }
+
+  if (deletingOrderId.value) {
     return
   }
 
@@ -83,10 +110,17 @@ const removeOrder = async (order: OrderSummary) => {
     }
 
     success.value = result.message
+    closeDeleteModal(true)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unable to delete order.'
   } finally {
     deletingOrderId.value = null
+  }
+}
+
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && deleteModalOpen.value) {
+    closeDeleteModal()
   }
 }
 
@@ -115,7 +149,14 @@ const goToEntry = () => {
   router.push({ name: 'order-entry' })
 }
 
-onMounted(loadOrders)
+onMounted(() => {
+  loadOrders()
+  window.addEventListener('keydown', handleEscapeKey)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscapeKey)
+})
 </script>
 
 <template>
@@ -283,10 +324,24 @@ onMounted(loadOrders)
 
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="deletingOrderId === order.id"
-              @click="removeOrder(order)"
+              title="Delete this order"
+              @click="requestDeleteOrder(order)"
             >
+              <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M4 7H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M10 11V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M14 11V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M6 7L7 19C7.06 19.62 7.58 20.1 8.2 20.1H15.8C16.42 20.1 16.94 19.62 17 19L18 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M9 7V4.6C9 4.27 9.27 4 9.6 4H14.4C14.73 4 15 4.27 15 4.6V7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
               {{ deletingOrderId === order.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
@@ -401,5 +456,77 @@ onMounted(loadOrders)
         </div>
       </div>
     </main>
+
+    <Transition name="confirm-modal">
+      <div
+        v-if="deleteModalOpen && orderPendingDelete"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 px-4"
+        @click.self="handleCloseDeleteModal"
+      >
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div class="mb-4 flex items-start gap-3">
+          <div class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M4 7H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M10 11V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M14 11V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M6 7L7 19C7.06 19.62 7.58 20.1 8.2 20.1H15.8C16.42 20.1 16.94 19.62 17 19L18 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M9 7V4.6C9 4.27 9.27 4 9.6 4H14.4C14.73 4 15 4.27 15 4.6V7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-slate-900">Delete order permanently?</h3>
+            <p class="mt-1 text-sm text-slate-600">
+              Order #{{ orderPendingDelete.id }} for
+              <span class="font-medium text-slate-800">{{ (orderPendingDelete.party as { name: string } | null)?.name ?? 'Unknown party' }}</span>
+              will be removed. This action cannot be undone.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            class="inline-flex min-w-[5.5rem] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+            :disabled="Boolean(deletingOrderId)"
+            @click="handleCloseDeleteModal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="inline-flex min-w-[5.5rem] items-center justify-center rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="deletingOrderId === orderPendingDelete.id"
+            @click="removeOrder"
+          >
+            {{ deletingOrderId === orderPendingDelete.id ? 'Deleting...' : 'Delete' }}
+          </button>
+        </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.confirm-modal-enter-active,
+.confirm-modal-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.confirm-modal-enter-active > div,
+.confirm-modal-leave-active > div {
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.confirm-modal-enter-from,
+.confirm-modal-leave-to {
+  opacity: 0;
+}
+
+.confirm-modal-enter-from > div,
+.confirm-modal-leave-to > div {
+  transform: translateY(8px) scale(0.98);
+  opacity: 0;
+}
+</style>

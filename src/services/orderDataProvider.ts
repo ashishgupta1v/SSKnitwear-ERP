@@ -1,27 +1,14 @@
 import { supabase } from '../lib/supabase'
-import type { Party, QuickParty, ProviderMode, SaveOrderInput, SaveOrderResult, OrderSummary, OrderDetail } from '../types/order'
+import type { Party, QuickParty, SaveOrderInput, SaveOrderResult, OrderSummary, OrderDetail } from '../types/order'
 
-// Determine the provider mode from environment variable, default to 'supabase'
-const rawMode = String(import.meta.env.VITE_DATA_PROVIDER ?? 'supabase').trim().toLowerCase()
-const rawBackendBaseUrl = String(import.meta.env.VITE_BACKEND_BASE_URL ?? '').trim()
-
-// Export the normalized provider mode
-export const providerMode: ProviderMode = rawMode === 'laravel' ? 'laravel' : 'supabase'
-
-// Get and normalize the backend base URL for Laravel API calls
-export const backendBaseUrl = String(rawBackendBaseUrl || 'http://127.0.0.1:8000')
-  .trim()
-  .replace(/\/$/, '') // Remove trailing slash
-
-// Check if the provider is configured (Supabase client exists or backend URL is set)
-export const providerConfigured = providerMode === 'laravel' ? Boolean(rawBackendBaseUrl) : Boolean(supabase)
+export const providerMode = 'supabase' as const
+export const providerConfigured = Boolean(supabase)
 
 // Diagnostic logging
 const debugLog = {
   supabaseClient: supabase ? 'initialized' : 'null',
   providerMode,
   providerConfigured,
-  backendBaseUrl,
   timestamp: new Date().toISOString(),
 }
 
@@ -34,53 +21,6 @@ if (!providerConfigured) {
 // Export diagnostics for debugging
 export const providerDiagnostics = debugLog
 
-// Build full URL for backend API endpoints
-const buildBackendUrl = (path: string) => {
-  if (/^https?:\/\//i.test(path)) {
-    return path // Already a full URL
-  }
-
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `${backendBaseUrl}${normalizedPath}`
-}
-
-// Safely parse JSON from response, return null on failure
-const readJson = async <T>(response: Response): Promise<T | null> => {
-  const text = await response.text()
-
-  if (!text) {
-    return null
-  }
-
-  try {
-    return JSON.parse(text) as T
-  } catch {
-    return null
-  }
-}
-
-// Make a JSON request to the backend with error handling
-const requestJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(buildBackendUrl(path), {
-    ...init,
-    mode: 'cors', // Enable CORS for cross-origin requests
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  })
-
-  const payload = await readJson<Record<string, unknown>>(response)
-
-  if (!response.ok) {
-    const message = typeof payload?.message === 'string' ? payload.message : `Request failed (${response.status})`
-    throw new Error(message)
-  }
-
-  return payload as T
-}
-
 const isMissingReferenceImageColumnError = (message: string) => {
   const normalized = String(message || '').toLowerCase()
   return normalized.includes('reference_image_name') || normalized.includes('reference_image_data')
@@ -88,11 +28,6 @@ const isMissingReferenceImageColumnError = (message: string) => {
 
 // Fetch list of parties from the configured provider
 export const listParties = async (): Promise<Party[]> => {
-  if (providerMode === 'laravel') {
-    // Call Laravel API endpoint
-    return requestJson<Party[]>('/api/parties', { method: 'GET' })
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
@@ -120,14 +55,6 @@ export const createParty = async (payload: QuickParty): Promise<Party> => {
     gst_no: payload.gst_no.trim() || null,
   }
 
-  if (providerMode === 'laravel') {
-    // POST to Laravel API
-    return requestJson<Party>('/api/parties', {
-      method: 'POST',
-      body: JSON.stringify(normalizedPayload),
-    })
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
@@ -148,35 +75,6 @@ export const createParty = async (payload: QuickParty): Promise<Party> => {
 
 // Persist an order and its items via the configured provider
 export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderResult> => {
-  if (providerMode === 'laravel') {
-    // POST order data to Laravel API
-    const response = await requestJson<{ message: string; order_id: number; pdf_url?: string | null }>('/api/orders', {
-      method: 'POST',
-      body: JSON.stringify({
-        party_id: payload.partyId,
-        item_name: payload.itemName,
-        is_embroidery: payload.isEmbroidery,
-        embroidery_details: payload.embroideryDetails ?? null,
-        is_batch: payload.isBatch,
-        is_printing: payload.isPrinting,
-        process_rate: payload.processRate,
-        transport_details: payload.transportDetails,
-        gst_percent: payload.gstPercent,
-        grand_total: payload.grandTotal,
-        reference_image_name: payload.referenceImageName ?? null,
-        reference_image_data: payload.referenceImageData ?? null,
-        items: payload.items,
-      }),
-    })
-
-    // Return result with full PDF URL
-    return {
-      orderId: response.order_id,
-      message: response.message,
-      pdfUrl: response.pdf_url ? buildBackendUrl(response.pdf_url) : null,
-    }
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
@@ -276,16 +174,11 @@ export const persistOrder = async (payload: SaveOrderInput): Promise<SaveOrderRe
       imageColumnsUnavailable && payload.referenceImageData
         ? `Order #${createdOrder.id} saved, but image was skipped because database image columns are missing.`
         : `Order #${createdOrder.id} saved successfully.`,
-    pdfUrl: null,
   }
 }
 
 // Fetch list of all orders with party name, sorted newest first
 export const listOrders = async (): Promise<OrderSummary[]> => {
-  if (providerMode === 'laravel') {
-    return requestJson<OrderSummary[]>('/api/orders', { method: 'GET' })
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
@@ -321,10 +214,6 @@ export const listOrders = async (): Promise<OrderSummary[]> => {
 
 // Fetch a single order with party info and line items
 export const fetchOrder = async (orderId: number): Promise<OrderDetail> => {
-  if (providerMode === 'laravel') {
-    return requestJson<OrderDetail>(`/api/orders/${orderId}`, { method: 'GET' })
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
@@ -362,10 +251,6 @@ export const fetchOrder = async (orderId: number): Promise<OrderDetail> => {
 
 // Delete a single order (and associated items) via the configured provider
 export const deleteOrder = async (orderId: number): Promise<{ message: string }> => {
-  if (providerMode === 'laravel') {
-    return requestJson<{ message: string }>(`/api/orders/${orderId}`, { method: 'DELETE' })
-  }
-
   if (!supabase) {
     throw new Error('Supabase is not configured.')
   }
